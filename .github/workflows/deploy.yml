@@ -1,0 +1,57 @@
+name: Build Dragana RHVoice test
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rsync python3 git
+          pip install --user emscripten || true
+          if ! command -v emcc >/dev/null; then
+            git clone --depth 1 https://github.com/emscripten-core/emsdk.git /tmp/emsdk
+            /tmp/emsdk/emsdk install latest
+            /tmp/emsdk/emsdk activate latest
+            echo "/tmp/emsdk" >> "$GITHUB_PATH"
+            echo "/tmp/emsdk/upstream/emscripten" >> "$GITHUB_PATH"
+          fi
+      - name: Get browser RHVoice proof-of-concept
+        run: git clone --depth 1 https://github.com/accessibility-luxembourg/rhvoice-emscripten-lb.git work
+      - name: Apply Serbian Dragana adaptation
+        run: |
+          cp patches/vendor.sh work/vendor.sh
+          cp patches/make-data.sh work/make-data.sh
+          cp patches/index.html work/index.html
+          chmod +x work/vendor.sh work/make-data.sh
+      - name: Build RHVoice + Dragana
+        working-directory: work
+        run: |
+          bash vendor.sh
+          bash make-data.sh
+          bash build.sh
+      - name: Assemble site
+        working-directory: work
+        run: |
+          mkdir -p _site
+          cp index.html _site/index.html
+          cp -r dist src data _site/
+          find _site/data -type f ! -name '*.gz' ! -name 'manifest.json' -delete
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: work/_site
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
