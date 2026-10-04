@@ -1,0 +1,11 @@
+<!doctype html><html lang="sr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dragana test</title>
+<style>body{font-family:system-ui,sans-serif;max-width:760px;margin:40px auto;padding:0 18px}textarea{width:100%;min-height:120px;font-size:18px;padding:12px;box-sizing:border-box}button{font-size:18px;padding:12px 18px;margin:12px 8px 12px 0}.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}input[type=range]{width:220px}.status{padding:10px 0;color:#555}</style></head><body>
+<h1>RHVoice — Dragana</h1><textarea id="text">Zdravo, kako si? Reci mi koliko je sada sati. Gde je tvoj pas?</textarea>
+<div class="row"><button id="speak" disabled>🔊 Dragana</button><label>Brzina <input id="rate" type="range" min="0.65" max="1.5" step="0.05" value="1"></label><b id="rv">1.00×</b></div><div class="status" id="status">Učitavanje Dragane…</div>
+<script type="module">
+import * as TTS from './src/rhvoice-tts.js';
+const $=id=>document.getElementById(id), btn=$('speak'), st=$('status'), rate=$('rate'), rv=$('rv');
+rate.oninput=()=>rv.textContent=Number(rate.value).toFixed(2)+'×';
+try{await TTS.init((m,f)=>{st.textContent=m+(Number.isFinite(f)?' '+Math.round(f*100)+'%':'')},'dragana');btn.disabled=false;st.textContent='Dragana spremna.';}catch(e){st.textContent='Greška: '+e.message;console.error(e)}
+btn.onclick=async()=>{TTS.unlock();const t=$('text').value.trim();if(!t)return;btn.disabled=true;st.textContent='Govori…';try{await TTS.speak(t,'dragana',{rate:+rate.value,pitch:1,volume:1,onProgress:m=>st.textContent=m});st.textContent='Spremno.'}catch(e){st.textContent='Greška: '+e.message;console.error(e)}finally{btn.disabled=false}};
+</script></body></html>
